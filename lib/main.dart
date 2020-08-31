@@ -74,6 +74,7 @@ class _HomePageState extends State<HomePage> {
         snapshot.docs.forEach((document) {
           batch.update(document.reference, {'state': true});
         });
+        return batch.commit();
       });
     }
     else {
@@ -81,10 +82,11 @@ class _HomePageState extends State<HomePage> {
         snapshot.docs.forEach((document) {
           batch.update(document.reference, {'state': false});
         });
+        return batch.commit();
       });
     }
 
-    await batch.commit();
+    // await batch.commit();
 
     //////////////////////////////////  \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
     //
