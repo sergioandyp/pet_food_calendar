@@ -41,6 +41,7 @@ class _HomePageState extends State<HomePage> {
     try {
       // Wait for Firebase to initialize and set `_initialized` state to true
       await Firebase.initializeApp();
+      FirebaseFirestore.instance.settings = Settings(persistenceEnabled: false);    // Desactiva persistencia
       setState(() {
         _initialized = true;
       });
@@ -86,6 +87,7 @@ class _HomePageState extends State<HomePage> {
       });
     }
 
+
     // await batch.commit();
 
     //////////////////////////////////  \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -121,12 +123,13 @@ class _HomePageState extends State<HomePage> {
             ? StreamBuilder<QuerySnapshot>(
                 stream: documentStream,
                 builder: (context, snapshot) {
+
                   if (snapshot.hasError) {
                     return Text('Something went wrong');
                   }
 
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Text("Loading");
+                    return Center(child: CircularProgressIndicator(strokeWidth: 5,));
                   }
 
                   final documents = snapshot.data.docs;
@@ -147,7 +150,7 @@ class _HomePageState extends State<HomePage> {
                   );
                 })
             : Center(
-                child: Text("Cargando..."),
+                child: Center(child: CircularProgressIndicator()),
               ),
       ),
     );
