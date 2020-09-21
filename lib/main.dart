@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:pet_food_calendar/LoginPage.dart';
 
 void main() {
   runApp(MyApp());
@@ -21,12 +23,16 @@ class MyApp extends StatelessWidget {
         // closer together (more dense) than on mobile platforms.
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: HomePage(),
+      home: LogInPage(),
     );
   }
 }
 
 class HomePage extends StatefulWidget {
+  final User user;
+
+  const HomePage({Key key, @required this.user}) : assert(user != null), super(key: key);
+
   @override
   _HomePageState createState() => _HomePageState();
 }
@@ -41,7 +47,7 @@ class _HomePageState extends State<HomePage> {
     try {
       // Wait for Firebase to initialize and set `_initialized` state to true
       await Firebase.initializeApp();
-      FirebaseFirestore.instance.settings = Settings(persistenceEnabled: false);    // Desactiva persistencia
+      FirebaseFirestore.instance.settings = Settings(persistenceEnabled: false);    // Desactiva persistencia (para no ver datos erroneos)
       setState(() {
         _initialized = true;
       });
@@ -116,7 +122,7 @@ class _HomePageState extends State<HomePage> {
     }
     return Scaffold(
       appBar: AppBar(
-        title: Text("Pet food calendar"),
+        title: Text("Bienvenido, ${widget.user.displayName}!"),
       ),
       body: Center(
         child: _initialized
