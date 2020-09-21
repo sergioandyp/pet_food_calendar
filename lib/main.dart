@@ -12,7 +12,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Pet food calendar',
       theme: ThemeData(
         primarySwatch: Colors.blue,
         buttonColor: Colors.lightBlue,
@@ -150,7 +150,7 @@ class _HomePageState extends State<HomePage> {
                   );
                 })
             : Center(
-                child: Center(child: CircularProgressIndicator()),
+                child: CircularProgressIndicator(strokeWidth: 5,),
               ),
       ),
     );
