@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:intl/intl.dart';
 import 'package:pet_food_calendar/LoginPage.dart';
+import 'package:pet_food_calendar/LogoutPage.dart';
 
 void main() {
   runApp(MyApp());
@@ -31,7 +33,9 @@ class MyApp extends StatelessWidget {
 class HomePage extends StatefulWidget {
   final User user;
 
-  const HomePage({Key key, @required this.user}) : assert(user != null), super(key: key);
+  const HomePage({Key key, @required this.user})
+      : assert(user != null),
+        super(key: key);
 
   @override
   _HomePageState createState() => _HomePageState();
@@ -39,15 +43,15 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   // Set default `_initialized` and `_error` state to false
-  bool _initialized = false;
+  bool _initialized = true;    // TESTING
   bool _error = false;
-
+/*
   // Define an async function to initialize FlutterFire
   void initializeFlutterFire() async {
     try {
       // Wait for Firebase to initialize and set `_initialized` state to true
       await Firebase.initializeApp();
-      FirebaseFirestore.instance.settings = Settings(persistenceEnabled: false);    // Desactiva persistencia (para no ver datos erroneos)
+      FirebaseFirestore.instance.settings = Settings(persistenceEnabled: false); // Desactiva persistencia (para no ver datos desactualizados)
       setState(() {
         _initialized = true;
       });
@@ -58,57 +62,62 @@ class _HomePageState extends State<HomePage> {
       });
     }
   }
-
+*/
+  /*
   @override
   void initState() {
-    initializeFlutterFire();
+    //initializeFlutterFire();    // Parece que no hace falta inicializarlo de nuevo, solo una vez en el inicio, REVISAR DOCUMENTACION
     super.initState();
   }
+*/
 
   Stream<QuerySnapshot> documentStream;
 
   void _onFoodClick(int id, bool state) async {
-    CollectionReference foodCollection = FirebaseFirestore.instance.collection("foods");
 
-    // final QuerySnapshot snapshot = await foodCollection.where('name').orderBy('position').get();
-    // final documents = snapshot.docs;
+    CollectionReference foodCollection =
+        FirebaseFirestore.instance.collection("foods");
 
-    ///////////////////////////////// PROBAR: \\\\\\\\\\\\\\\\\\\\\\\\\\\
     WriteBatch batch = FirebaseFirestore.instance.batch();
 
     if (state) {
-      await foodCollection.where('position', isLessThanOrEqualTo: id).get().then((snapshot) {
-        snapshot.docs.forEach((document) {
-          batch.update(document.reference, {'state': true});
-        });
-        return batch.commit();
-      });
+      await foodCollection
+          .where('position', isLessThanOrEqualTo: id)
+          .where('state', isEqualTo: false)
+          .get()
+          .then((snapshot) {
+            snapshot.docs.forEach((document) {
+              batch.update(document.reference, {'state': true, 'time': Timestamp.now()});
+            });
+            return batch.commit();
+          });
+    } else {
+      await foodCollection
+          .where('position', isGreaterThanOrEqualTo: id)
+          .where('state', isEqualTo: true)
+          .get()
+          .then((snapshot) {
+            snapshot.docs.forEach((document) {
+              batch.update(document.reference, {'state': false});
+            });
+            return batch.commit();
+          });
     }
-    else {
-      await foodCollection.where('position', isGreaterThanOrEqualTo: id).get().then((snapshot) {
-        snapshot.docs.forEach((document) {
-          batch.update(document.reference, {'state': false});
-        });
-        return batch.commit();
-      });
-    }
 
+  }
 
-    // await batch.commit();
+  void signOutUser() async {
 
-    //////////////////////////////////  \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-    //
-    // if (state) {
-    //   // Si se activa
-    //   for (int i = 0; i <= id; i++) {
-    //     await documents[i].reference.update({'state': true});
-    //   }
-    // } else {
-    //   for (int i = id; i < documents.length; i++) {
-    //     await documents[i].reference.update({'state': false});
-    //   }
-    // }
+    FirebaseAuth.instance
+        .authStateChanges()
+        .listen((User user) {
+        if (user == null) {
+          print('User is currently signed out! (from HomePage)');
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LogOutPage()));
+      }
+    });
 
+    await FirebaseAuth.instance.signOut();
   }
 
   @override
@@ -123,23 +132,34 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Bienvenido, ${widget.user.displayName}!"),
+        actions: <Widget>[
+          IconButton(
+            icon: Icon(Icons.exit_to_app),
+            tooltip: "Log out",
+            iconSize: 30,
+            onPressed: signOutUser,
+          ),
+        ],
       ),
       body: Center(
         child: _initialized
             ? StreamBuilder<QuerySnapshot>(
                 stream: documentStream,
                 builder: (context, snapshot) {
-
                   if (snapshot.hasError) {
                     return Text('Something went wrong');
                   }
 
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator(strokeWidth: 5,));
+                    return Center(
+                        child: CircularProgressIndicator(
+                      strokeWidth: 5,
+                    ));
                   }
 
                   final documents = snapshot.data.docs;
-                  final btnHeight = MediaQuery.of(context).size.height / (documents.length + 1);
+                  final btnHeight = MediaQuery.of(context).size.height /
+                      (documents.length + 1);
                   return Column(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -150,13 +170,17 @@ class _HomePageState extends State<HomePage> {
                               id: index,
                               active: documents[index].data()['state'],
                               text: documents[index].data()['name'],
+                              time: documents[index].data()['time'].toDate(),
                               height: btnHeight,
                               onPressed: _onFoodClick,
                             )),
                   );
                 })
+            : _error ? Center(child: Text("Ha ocurrido un error al inicializar Firebase"))
             : Center(
-                child: CircularProgressIndicator(strokeWidth: 5,),
+                child: CircularProgressIndicator(
+                  strokeWidth: 5,
+                ),
               ),
       ),
     );
@@ -167,6 +191,7 @@ class FoodCalendarButton extends StatelessWidget {
   final int id;
   final bool active;
   final String text;
+  final DateTime time;
   final double height;
   final Function(int, bool) onPressed;
 
@@ -176,7 +201,7 @@ class FoodCalendarButton extends StatelessWidget {
       this.text,
       this.height,
       @required this.id,
-      @required this.active})
+      @required this.active, this.time})
       : super(key: key);
 
   @override
@@ -189,11 +214,14 @@ class FoodCalendarButton extends StatelessWidget {
         height: height,
         width: double.infinity,
         child: RaisedButton(
-          child: Text(
-            text,
-            style: TextStyle(
-              fontSize: 24,
-            ),
+          child: !active ?
+              Text(text, style: TextStyle(fontSize: 24,),)
+          : Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Text(text, style: TextStyle(fontSize: 24,),),
+              Text(time!=null ? DateFormat.Hm().format(time) : "--:--", style: TextStyle(fontSize: 20, color: Colors.grey[700]),),
+            ],
           ),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           color: active ? enabledColor : disabledColor,

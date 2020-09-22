@@ -38,13 +38,20 @@ class _LogInPageState extends State<LogInPage> {
     initializeFlutterFire();
     super.initState();
   }
-  
+
+  @override
+  void dispose() {
+    subscription.cancel();
+    super.dispose();
+  }
+
+  StreamSubscription<User> subscription;
   void logWithGoogle() async {
-    FirebaseAuth.instance
+    subscription = FirebaseAuth.instance      // Buscar una froma mejor de hacer esto
         .authStateChanges()
         .listen((User user) {
           if (user == null) {
-            print('User is currently signed out!');
+            print('User is currently signed out (Im the LogIn)!');
             setState(() {
               _error = true;
             });
