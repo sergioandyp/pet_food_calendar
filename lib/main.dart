@@ -1,11 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:intl/intl.dart';
 import 'package:pet_food_calendar/LoginPage.dart';
-import 'package:pet_food_calendar/LogoutPage.dart';
 
 void main() {
   runApp(MyApp());
@@ -25,51 +25,37 @@ class MyApp extends StatelessWidget {
         // closer together (more dense) than on mobile platforms.
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: LogInPage(),
+      darkTheme: ThemeData.dark(),
+      home: FutureBuilder(
+        future: Firebase.initializeApp(),
+        builder: (context, snapshot) {
+          // Check for errors
+          if (snapshot.hasError) {
+            return Scaffold(body: Center(child: Text("Error de inicialización de Firebase: ${snapshot.error}"),),);
+          }
+
+          // Once complete, show your application
+          if (snapshot.connectionState == ConnectionState.done) {
+            if (FirebaseAuth.instance.currentUser != null) return NewHomePage();
+            return LogInPage();
+          }
+
+          // Otherwise, show something whilst waiting for initialization to complete
+          return Scaffold(body: Center(child: CircularProgressIndicator(strokeWidth: 5,)));
+        },
+      ),
     );
   }
 }
 
+/*
+
 class HomePage extends StatefulWidget {
-  final User user;
-
-  const HomePage({Key key, @required this.user})
-      : assert(user != null),
-        super(key: key);
-
   @override
   _HomePageState createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  // Set default `_initialized` and `_error` state to false
-  bool _initialized = true;    // TESTING
-  bool _error = false;
-/*
-  // Define an async function to initialize FlutterFire
-  void initializeFlutterFire() async {
-    try {
-      // Wait for Firebase to initialize and set `_initialized` state to true
-      await Firebase.initializeApp();
-      FirebaseFirestore.instance.settings = Settings(persistenceEnabled: false); // Desactiva persistencia (para no ver datos desactualizados)
-      setState(() {
-        _initialized = true;
-      });
-    } catch (e) {
-      // Set `_error` state to true if Firebase initialization fails
-      setState(() {
-        _error = true;
-      });
-    }
-  }
-*/
-  /*
-  @override
-  void initState() {
-    //initializeFlutterFire();    // Parece que no hace falta inicializarlo de nuevo, solo una vez en el inicio, REVISAR DOCUMENTACION
-    super.initState();
-  }
-*/
 
   Stream<QuerySnapshot> documentStream;
 
@@ -117,7 +103,9 @@ class _HomePageState extends State<HomePage> {
       }
     });
 
+    await GoogleSignIn().disconnect();
     await FirebaseAuth.instance.signOut();
+    print("Desconectado");
   }
 
   @override
@@ -187,6 +175,8 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
+*/
+
 class FoodCalendarButton extends StatelessWidget {
   final int id;
   final bool active;
@@ -231,3 +221,126 @@ class FoodCalendarButton extends StatelessWidget {
     );
   }
 }
+
+
+
+class NewHomePage extends StatefulWidget {
+  @override
+  _NewHomePageState createState() => _NewHomePageState();
+}
+
+class _NewHomePageState extends State<NewHomePage> {
+
+  CollectionReference foodCollection = FirebaseFirestore.instance.collection("foods");
+
+  // StreamSubscription userStream;
+
+  void _onFoodClick(int id, bool state) async {
+
+    WriteBatch batch = FirebaseFirestore.instance.batch();
+
+    if (state) {
+      await foodCollection
+          .where('position', isLessThanOrEqualTo: id)
+          .where('state', isEqualTo: false)
+          .get()
+          .then((snapshot) {
+        snapshot.docs.forEach((document) {
+          batch.update(document.reference, {'state': true, 'time': Timestamp.now()});
+        });
+        return batch.commit();
+      });
+    } else {
+      await foodCollection
+          .where('position', isGreaterThanOrEqualTo: id)
+          .where('state', isEqualTo: true)
+          .get()
+          .then((snapshot) {
+        snapshot.docs.forEach((document) {
+          batch.update(document.reference, {'state': false});
+        });
+        return batch.commit();
+      });
+    }
+
+  }
+
+  void signOutUser() async {
+    await GoogleSignIn().disconnect();
+    await FirebaseAuth.instance.signOut().then((_) => Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => LogInPage())));
+  }
+
+  // @override
+  // void initState() {
+  //   super.initState();
+  //
+  //   // userStream = FirebaseAuth.instance       // No funciona, se quiere cerrar mientras se inicia
+  //   //     .authStateChanges()
+  //   //     .listen((User user) {
+  //   //       print("Quiero popear!");
+  //   //   if (user == null) {
+  //   //     print('User is currently signed out! (from HomePage)');
+  //   //     Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LogInPage()));
+  //   //   }
+  //   // });
+  //
+  // }
+  //
+  // @override
+  // void dispose() {
+  //   // userStream?.cancel();
+  //   super.dispose();
+  // }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Bienvenido, ${FirebaseAuth.instance.currentUser.displayName}!"),
+        actions: <Widget>[
+          IconButton(
+            icon: Icon(Icons.exit_to_app),
+            tooltip: "Log out",
+            iconSize: 30,
+            onPressed: signOutUser,
+          ),
+        ],
+      ),
+      body: Center(
+        child: StreamBuilder<QuerySnapshot>(
+            stream: foodCollection.where('name').orderBy('position').snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Text('Something went wrong');
+              }
+
+              if (snapshot.connectionState == ConnectionState.active) {
+                final documents = snapshot.data.docs;
+                final btnHeight = MediaQuery.of(context).size.height / (documents.length + 1);
+                return Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.max,
+                  children: List<Widget>.generate(
+                      documents.length,
+                          (index) =>
+                          FoodCalendarButton(
+                            id: index,
+                            active: documents[index].data()['state'],
+                            text: documents[index].data()['name'],
+                            time: documents[index].data()['time'].toDate(),
+                            height: btnHeight,
+                            onPressed: _onFoodClick,
+                          )),
+                );
+              }
+
+              // Otro caso, esperamos
+              return Center(child: CircularProgressIndicator(strokeWidth: 5,));
+
+            })
+      ),
+    );
+  }
+}
+
