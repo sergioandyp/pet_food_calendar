@@ -34,8 +34,8 @@ dependencies:
   firebase_auth: ^0.18.0+1      # Para usar Autenticación de Firebase
   google_sign_in: ^4.5.3        # Para poder loguearse con Google
   intl: ^0.16.1                 # Para formatear la hora
-
-
+  firebase_dynamic_links: ^0.6.0+2  # Para usar Dynamic Links
+  share: ^0.6.5+4               # Para compartir archivos y links
 
 
 dev_dependencies:
