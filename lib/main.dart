@@ -1,8 +1,6 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'pages/HomePage.dart';
-import 'pages/LoginPage.dart';
+import 'package:pet_food_calendar/pages/AuthWrapper.dart';
 
 void main() {
   runApp(MyApp());
@@ -38,8 +36,8 @@ class MyApp extends StatelessWidget {
 
           // Once complete, show your application
           if (snapshot.connectionState == ConnectionState.done) {
-            if (FirebaseAuth.instance.currentUser != null) return HomePage();
-            return LogInPage();
+            print("Firebase initialized");
+            return AuthWrapper();
           }
 
           // Otherwise, show something whilst waiting for initialization to complete

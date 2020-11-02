@@ -3,9 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:intl/intl.dart';
+import 'file:///D:/Android/Flutter/Projects/pet_food_calendar/lib/pages/SettingsPage/FamilySettingsPage.dart';
 
-import 'FamilySettingsPage.dart';
-import 'LoginPage.dart';
 
 class FamilyMemberHomePage extends StatefulWidget {
   @override
@@ -47,8 +46,9 @@ class _FamilyMemberHomePageState extends State<FamilyMemberHomePage> {
 
   void _signOutUser() async {
     await GoogleSignIn().signOut();
-    await FirebaseAuth.instance.signOut().then((_) => Navigator.of(context)
-        .pushReplacement(MaterialPageRoute(builder: (context) => LogInPage())));
+    // await FirebaseAuth.instance.signOut().then((_) => Navigator.of(context)
+    //     .pushReplacement(MaterialPageRoute(builder: (context) => LogInPage())));   // De esto se encarga AuthWrapper
+    await FirebaseAuth.instance.signOut();
   }
 
   @override

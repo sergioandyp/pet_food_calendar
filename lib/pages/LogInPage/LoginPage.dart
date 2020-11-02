@@ -2,8 +2,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-import 'HomePage.dart';
-
 class LogInPage extends StatefulWidget {
   @override
   _LogInPageState createState() => _LogInPageState();
@@ -14,11 +12,12 @@ class _LogInPageState extends State<LogInPage> {
   bool _processing = false;
 
   void _logWithGoogle() async {
-    if (await signInWithGoogle() != null) {
-      Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => HomePage()));
-    }
-    else {
+
+    setState(() {
+      _processing = true;
+    });
+
+    if (await signInWithGoogle() == null) {   // Si no se autenticó correctamente, dejo de procesar
       setState(() {
         _processing = false;
       });
@@ -30,10 +29,6 @@ class _LogInPageState extends State<LogInPage> {
     final GoogleSignInAccount googleUser = await GoogleSignIn().signIn();
 
     if (googleUser != null) {
-
-      setState(() {
-        _processing = true;
-      });
 
       // Obtain the auth details from the request
       final GoogleSignInAuthentication googleAuth = await googleUser

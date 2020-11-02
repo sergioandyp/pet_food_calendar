@@ -2,11 +2,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:pet_food_calendar/pages/NotInAFamilyHomePage.dart';
-
-import 'FamilyMemberHomePage.dart';
-import 'LoginPage.dart';
+import 'package:pet_food_calendar/pages/HomePage/FamilyMemberHomePage.dart';
+import 'package:pet_food_calendar/pages/HomePage/NotInAFamilyHomePage.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -34,12 +31,14 @@ class _HomePageState extends State<HomePage> {
           }
 
           if (snapshot.connectionState == ConnectionState.done) {
-            Map<String, dynamic> data = snapshot.data.data();   // Me fijo si el usuario tiene familia
+            final Map<String, dynamic> data = snapshot.data.data();   // Me fijo si el usuario tiene familia
             if (data != null && data['family'] != null) return FamilyMemberHomePage();
-            return NotInAFamilyHomePage();
+            else return NotInAFamilyHomePage();
           }
+
           // Mientras tanto, espero
-          return Center(child: CircularProgressIndicator(strokeWidth: 5,),);
-        },);
+          return Scaffold(body: Center(child: CircularProgressIndicator(strokeWidth: 5,),));
+        },
+    );
   }
 }

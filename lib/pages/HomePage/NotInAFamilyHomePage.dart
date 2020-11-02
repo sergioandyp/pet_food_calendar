@@ -2,7 +2,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-import 'LoginPage.dart';
 
 class NotInAFamilyHomePage extends StatefulWidget {
   @override
@@ -13,8 +12,9 @@ class _NotInAFamilyHomePageState extends State<NotInAFamilyHomePage> {
 
   void _signOutUser() async {
     await GoogleSignIn().signOut();
-    await FirebaseAuth.instance.signOut().then((_) => Navigator.of(context)
-        .pushReplacement(MaterialPageRoute(builder: (context) => LogInPage())));
+    // await FirebaseAuth.instance.signOut().then((_) => Navigator.of(context)
+    //     .pushReplacement(MaterialPageRoute(builder: (context) => LogInPage()))); // De esto se encarga AuthWrapper
+    await FirebaseAuth.instance.signOut();
   }
 
   void _closeDialog() {
